@@ -6,6 +6,23 @@ TaskPilot gives you one workspace for task management, focus planning, and quick
 
 > **Honest demo note:** The included chat uses deterministic local intent matching, not a hosted LLM. It does not call Amazon Bedrock by default. The MCP server is implemented with the official Model Context Protocol SDK. This keeps the project runnable without AWS credentials; describe it as a local agent demo rather than claiming generative AI is connected.
 
+## 🚀 Run the Live Demo Locally
+
+The application currently runs locally on your computer.
+
+**Local URL:** http://localhost:3939
+
+> Note: This URL is accessible only on the computer running the server. To try the application, clone the repository and follow the setup instructions below.
+
+### Run Locally
+```bash
+npm install
+node server.mjs
+```
+
+Then open http://localhost:3939 in your browser.
+
+
 ## Features
 
 - Responsive dark dashboard with overview, task list, notes, and assistant views.
