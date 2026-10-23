@@ -1,0 +1,18 @@
+{
+  "name": "taskpilot-ai",
+  "version": "1.0.0",
+  "private": false,
+  "description": "TaskPilot AI — a productivity agent demo with a self-hosted MCP server for the Amazon Build, Ship, Shape hackathon.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs"
+  },
+  "engines": { "node": ">=20.11.0" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "express": "^5.1.0",
+    "zod": "^3.25.76"
+  },
+  "license": "MIT"
+}
