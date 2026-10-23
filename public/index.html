@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskPilot AI | Productivity Workspace</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font-family: Arial, sans-serif;
+      background: #0b1020; color: #edf2ff; padding: 28px;
+    }
+    .container { max-width: 1000px; margin: auto; }
+    header { display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap; }
+    .logo { font-size: 26px; font-weight: 800; }
+    .logo span { color: #8b83ff; }
+    .status { color: #75e4b0; font-size: 13px; }
+    .hero { margin: 35px 0 25px; }
+    .hero p { color: #aab5d1; line-height: 1.6; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 14px; }
+    .card { background: #141b30; border: 1px solid #29324b; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+    .stat-number { font-size: 30px; font-weight: bold; margin-top: 12px; }
+    .muted { color: #aab5d1; font-size: 13px; }
+    h2 { font-size: 18px; }
+    input, select, textarea {
+      width: 100%; padding: 12px; border-radius: 9px; border: 1px solid #303b59;
+      background: #0c1325; color: white; margin: 6px 0 12px;
+    }
+    button {
+      background: #8178ff; color: white; border: 0; border-radius: 9px;
+      padding: 11px 15px; font-weight: bold; cursor: pointer;
+    }
+    button:hover { background: #655bed; }
+    .task { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid #29324b; }
+    .task:last-child { border-bottom: 0; }
+    .done { text-decoration: line-through; opacity: .55; }
+    .tag { font-size: 11px; color: #c3bdff; margin-top: 5px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 16px; margin-top: 16px; }
+    #chat { height: 190px; overflow: auto; white-space: pre-wrap; color: #cbd5f1; line-height: 1.6; font-size: 14px; }
+    .message { padding: 8px 0; border-bottom: 1px solid #29324b; }
+    footer { color: #7785a5; font-size: 12px; text-align: center; padding: 25px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">✦ TaskPilot <span>AI</span></div>
+    <div class="status">● LOCAL SERVER CONNECTED</div>
+  </header>
+
+  <section class="hero">
+    <p>YOUR PERSONAL PRODUCTIVITY WORKSPACE</p>
+    <h1>Make progress, one task at a time.</h1>
+    <p>Manage tasks, plan focused work and capture ideas in one place.</p>
+  </section>
+
+  <section class="stats">
+    <div class="card"><div class="muted">TOTAL TASKS</div><div class="stat-number" id="total">—</div></div>
+    <div class="card"><div class="muted">OPEN TASKS</div><div class="stat-number" id="open">—</div></div>
+    <div class="card"><div class="muted">COMPLETED</div><div class="stat-number" id="done">—</div></div>
+    <div class="card"><div class="muted">SAVED NOTES</div><div class="stat-number" id="notesCount">—</div></div>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <h2>＋ Add a task</h2>
+      <form id="taskForm">
+        <label for="taskTitle">Task title</label>
+        <input id="taskTitle" placeholder="e.g. Practice JavaScript" required>
+        <label for="priority">Priority</label>
+        <select id="priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select>
+        <button type="submit">Add task</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>📝 Quick note</h2>
+      <form id="noteForm">
+        <input id="noteTitle" placeholder="Note title" required>
+        <textarea id="noteContent" placeholder="Write your idea..." required></textarea>
+        <button type="submit">Save note</button>
+      </form>
+      <div id="noteList" class="muted"></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>☑ Your tasks</h2>
+    <div id="taskList" class="muted">Loading tasks...</div>
+  </section>
+
+  <section class="card">
+    <h2>✦ TaskPilot Agent</h2>
+    <p class="muted">Try: “add task to revise my README”, “show my tasks”, or “make me a 25-minute focus plan”.</p>
+    <div id="chat">Welcome! What would you like to work on?</div>
+    <form id="chatForm">
+      <input id="prompt" placeholder="Ask TaskPilot to help you..." required>
+      <button type="submit">Send message ↗</button>
+    </form>
+  </section>
+  <footer>TaskPilot AI · MCP Streamable HTTP · Productivity workspace demo</footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+async function api(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) }
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  })[c]);
+}
+async function refresh() {
+  try {
+    const [tasks, notes, summary] = await Promise.all([
+      api("/api/tasks"), api("/api/notes"), api("/api/summary")
+    ]);
+    $("total").textContent = summary.total;
+    $("open").textContent = summary.open;
+    $("done").textContent = summary.done;
+    $("notesCount").textContent = summary.notes;
+
+    $("taskList").innerHTML = tasks.length ? tasks.map(t => `
+      <div class="task">
+        <div><div class="${t.status === "done" ? "done" : ""}">${escapeHTML(t.title)}</div>
+        <div class="tag">${escapeHTML(t.priority.toUpperCase())} PRIORITY · ${escapeHTML(t.id)}</div></div>
+        ${t.status === "open" ? `<button onclick="finishTask('${escapeHTML(t.id)}')">Complete</button>` : '<span class="muted">Completed ✓</span>'}
+      </div>`).join("") : "No tasks yet.";
+    $("noteList").innerHTML = notes.map(n => `<p><b>${escapeHTML(n.title)}</b><br>${escapeHTML(n.content)}</p>`).join("");
+  } catch (error) {
+    $("taskList").textContent = "Cannot connect to server: " + error.message;
+  }
+}
+async function finishTask(id) {
+  try { await api("/api/tasks/" + encodeURIComponent(id) + "/complete", { method: "PATCH" }); await refresh(); }
+  catch (error) { alert(error.message); }
+}
+$("taskForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  try {
+    await api("/api/tasks", { method: "POST", body: JSON.stringify({ title: $("taskTitle").value, priority: $("priority").value }) });
+    $("taskTitle").value = ""; await refresh();
+  } catch (error) { alert(error.message); }
+});
+$("noteForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  try {
+    await api("/api/notes", { method: "POST", body: JSON.stringify({ title: $("noteTitle").value, content: $("noteContent").value }) });
+    $("noteTitle").value = ""; $("noteContent").value = ""; await refresh();
+  } catch (error) { alert(error.message); }
+});
+$("chatForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const prompt = $("prompt").value.trim();
+  if (!prompt) return;
+  $("prompt").value = "";
+  $("chat").innerHTML += "\n\n<b>You:</b> " + escapeHTML(prompt) + "\n";
+  try {
+    const result = await api("/api/agent", { method: "POST", body: JSON.stringify({ message: prompt }) });
+    $("chat").innerHTML += "<b>TaskPilot:</b> " + escapeHTML(result.reply) + "\n";
+    await refresh();
+  } catch (error) {
+    $("chat").innerHTML += "Error: " + escapeHTML(error.message);
+  }
+  $("chat").scrollTop = $("chat").scrollHeight;
+});
+refresh();
+</script>
+</body>
+</html>
